@@ -1,0 +1,47 @@
+(: Copyright 2022 vbprofi. :)
+
+(:------------------ QUERY PROLOG ------------------:)
+
+(:------------------ NAMESPACES ------------------:)
+declare default element namespace "http://www.w3.org/1999/xhtml";
+
+(:------------------ IMPORTS ------------------:)
+import module namespace fsi = "http://freedomscientific.com/ResearchItImports" at "ResearchItLibrary.jri";
+
+
+(:------------------ FUNCTIONS ------------------:)
+
+declare function local:make-link ($link as xs:string, $title as xs:string) as xs:string*
+{
+	('<a href=&quot;', replace($link,",","%2c"), '&quot; target=&quot;_blank&quot;>',
+	$title, '</a>', $fsi:new_line)
+};
+
+declare function local:process-each ($list as node()*) as xs:string*
+{
+	for $item at $count in $list
+		let $link := local:make-link (data ($item/*[name()='link']), data ($item/*[name()='title']))
+		let $desc := fsi:output-clean-lines ($item/*[name()='description'])
+		let $content := fsi:output-clean-lines ($item/*[name()='content'])
+		return ($link, $desc, $content, $fsi:new_line)
+};
+
+declare function local:main ()
+{
+	if (count ($stories)) then
+		('Es werden jetzt nachfolgend die aktuellen Nachrichten aufgelistet.', $fsi:new_line, $fsi:new_line,
+		local:process-each ($stories))
+	else (
+		"Es konnten keine aktuellen Nachrichten heruntergeladen werden. Vergewissern Sie sich, dass eine Internet-Verbindung besteht.",
+		$fsi:new_line
+	)
+};
+(:------------------ VARIABLES ------------------:)
+
+declare variable $URL := "http://vbprofi.lima-city.de/rss/yop/";
+declare variable $doc := doc ($URL);
+declare variable $stories := $doc/*[name()='rss']/*[name()='channel']/*[name()='item'];
+
+(:------------------ QUERY BODY ------------------:)
+local:main ()
+	
